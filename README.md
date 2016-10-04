@@ -1,8 +1,6 @@
 # geom-parse-obj
 
-[![stable](http://badges.github.io/stability-badges/dist/stable.svg)](http://github.com/badges/stability-badges)
-
-Parse Wavefront .obj geometry file.
+Parse [Wavefront .obj](https://github.com/vorg/geom-parse-obj) geometry file.
 
 Notes:
 - this parser support multiple meshes in one file via `g` sections in the OBJ file
