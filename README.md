@@ -2,45 +2,43 @@
 
 Parse [Wavefront .obj](https://github.com/vorg/geom-parse-obj) geometry file.
 
-Notes:
-- this parser support multiple meshes in one file via `g` sections in the OBJ file
-- we return only vertex data, so no face normals and face tex coords
+This parser support multiple meshes in one file via `g` sections in the OBJ file.
+
+![](screenshot.png)
+
+## Installation
+
+```bash
+npm install geom-parse-obj
+```
 
 ## Usage
 
-[![NPM](https://nodei.co/npm/geom-parse-obj.png)](https://www.npmjs.com/package/geom-parse-obj)
+```js
+import parseObj from "geom-parse-obj";
 
-#### `parseObj(str)`
-
-Parameters:  
-`str` - UTF8 encoded string with the contents of OBJ file
-
-Returns:  
-`geometry` or `[geometry, geometry, ...]` (depending if groups are present inside the file)
-
-```javascript
-geometry = {
-  positions: [[x, y, z], [x, y, z], ...], // array of positions
-  normals: [[x, y, z], [x, y, z], ...], // array of normals
-  uvs: [[u, v], [u, v], ...], // array of tex coords
-  cells: [[i, j, k], [i, j, k], ...] // array of triangles or polygons
-}
+const objString = await (await fetch("file.obj")).text();
+const obj = parseObj(objString);
+// => {
+//   positions: new Float32Array([x, y, z, x, y, z, ...])
+//   normals: new Float32Array([x, y, z, x, y, z, ...])
+//   uvs: new Float32Array([u, v, u, v, ...])
+//   cells: new Uint32Array([i, j, k, i, j, k, ...])
+// }
 ```
 
-## Example
+## API
 
-```javascript
-var parseObj = require('geom-parse-obj');
-var fs = require('fs')
-var objStr = fs.readFileSync(__dirname + '/geometry.obj', 'utf8')
-var obj = parseObj(objStr)
-console.log(obj.positions) // -> [[0, 0, 0], [1, 0, 1], ...]
-```
+#### `parseObj(objString): geometry | geometry[]`
 
-## See also
+**Parameters**
 
-[parse-obj](https://www.npmjs.com/package/parse-obj) by Mikola Lysenko
+- objString: `string` - UTF8 encoded string with the contents of OBJ file
+
+**Returns**
+
+`geometry|geometry[]`: one or more simplicial complex geometry depending if groups are present in the file.
 
 ## License
 
-MIT, see [LICENSE.md](http://github.com/vorg/geom-parse-obj/blob/master/LICENSE.md) for details.
+MIT. See [license file](https://github.com/vorg/geom-parse-obj/blob/master/LICENSE.md).

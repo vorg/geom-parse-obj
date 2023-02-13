@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>geom-parse-obj by Marcin Ignac (https://github.com/vorg)</title>
+    <style>
+      :root {
+        --color-dark: #404040;
+        --color-light: #f2f2f2;
+        --color-accent: #fd5e62;
+      }
+
+      body {
+        margin: 0;
+        overscroll-behavior: none;
+        font-family: sans-serif;
+        color: var(--color-dark);
+        background-color: var(--color-light);
+      }
+
+      main {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      code {
+        display: block;
+        position: absolute;
+        box-sizing: border-box;
+        padding: 20px;
+        max-height: 100vh;
+        width: 100%;
+        columns: 4;
+        color: var(--color-light);
+      }
+    </style>
+  </head>
+  <body>
+    <main></main>
+    <script async src="web_modules/es-module-shims.js" type="module"></script>
+    <script src="web_modules/import-map.json" type="importmap-shim"></script>
+
+    <script src="./examples/index.js" type="module-shim"></script>
+  </body>
+</html>
