@@ -2,7 +2,7 @@
 
 Parse [Wavefront .obj](https://github.com/vorg/geom-parse-obj) geometry file.
 
-This parser support multiple meshes in one file via `g` sections in the OBJ file.
+This parser supports multiple meshes in one file via `g` sections in the OBJ file.
 
 ![](screenshot.png)
 
