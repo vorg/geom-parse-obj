@@ -39,7 +39,7 @@ const updateGeometry = async () => {
     )
   ).text();
 
-  const geometry = parseObj(objString);
+  const [geometry] = parseObj(objString);
   console.log("Parsed", geometry);
   if (!geometry.normals) {
     geometry.normals = normals(geometry.positions, geometry.cells);

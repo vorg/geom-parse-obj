@@ -132,7 +132,7 @@ function parseObj(text) {
     }
   }
 
-  const geometries = groups.map((group) => {
+  return groups.map((group) => {
     const size = group.faceData.length * 3;
 
     const geometry = {
@@ -188,8 +188,6 @@ function parseObj(text) {
 
     return geometry;
   });
-
-  return geometries.length > 1 ? geometries : geometries[0];
 }
 
 export default parseObj;

@@ -23,13 +23,13 @@ const obj = parseObj(objString);
 //   positions: new Float32Array([x, y, z, x, y, z, ...])
 //   normals: new Float32Array([x, y, z, x, y, z, ...])
 //   uvs: new Float32Array([u, v, u, v, ...])
-//   cells: new Uint32Array([i, j, k, i, j, k, ...])
+//   cells: new Uint16Array([i, j, k, i, j, k, ...])
 // }
 ```
 
 ## API
 
-#### `parseObj(objString): geometry | geometry[]`
+#### `parseObj(objString): geometry[]`
 
 **Parameters**
 
@@ -37,7 +37,7 @@ const obj = parseObj(objString);
 
 **Returns**
 
-`geometry|geometry[]`: one or more simplicial complex geometry depending if groups are present in the file.
+`geometry[]`: array of one or more simplicial complex geometry depending if groups are present in the file.
 
 ## License
 
