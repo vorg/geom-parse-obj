@@ -1,6 +1,6 @@
 {
   "name": "geom-parse-obj",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Parse Wavefront .obj geometry files.",
   "keywords": [
     "geom",
@@ -32,9 +32,8 @@
     "dev": "snowdev dev",
     "release": "snowdev release"
   },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+  "dependencies": {
+    "typed-array-constructor": "^1.0.1"
   },
   "devDependencies": {
     "es-module-shims": "^1.6.3",
@@ -45,7 +44,8 @@
     "pex-gui": "^3.0.0-alpha.2",
     "pex-math": "^4.0.0-alpha.3"
   },
-  "dependencies": {
-    "typed-array-constructor": "^1.0.1"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
