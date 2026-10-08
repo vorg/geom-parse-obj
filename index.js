@@ -44,12 +44,13 @@ function parseObj(text) {
         ]);
 
         // vertex colors (only if 4th, 5th and 6th defined): r g b
+        // Indexed like positions as not every vertex may have a color
         if (tokens[4] && tokens[5] && tokens[6]) {
-          vertexColors.push([
+          vertexColors[positions.length - 1] = [
             Number(tokens[4]),
             Number(tokens[5]),
             Number(tokens[6]),
-          ]);
+          ];
         }
         break;
       // texture vertices (skipping 3rd coordinate): u v
@@ -83,8 +84,7 @@ function parseObj(text) {
 
         if (Number.isFinite(v0[1])) g.hasUVs = true;
         if (Number.isFinite(v0[2])) g.hasNormals = true;
-        // TODO: this is wrong assumption. How to check group vertexColor?
-        if (vertexColors.length) g.hasVertexColors = true;
+        if (faceData.some(([p]) => vertexColors[p])) g.hasVertexColors = true;
 
         for (let v = 1; v < faceData.length - 1; v++) {
           g.faceData.push([v0, faceData[v], faceData[v + 1]]);
@@ -173,7 +173,8 @@ function parseObj(text) {
 
         geometry.positions[index] = positions[pIndex];
         if (group.hasVertexColors) {
-          geometry.vertexColors[index] = vertexColors[pIndex];
+          // Default to white for uncolored vertices to keep attributes aligned
+          geometry.vertexColors[index] = vertexColors[pIndex] ?? [1, 1, 1];
         }
         if (group.hasUVs) {
           geometry.uvs[index] = uvs[tIndex];
