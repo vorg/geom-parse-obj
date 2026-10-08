@@ -91,11 +91,17 @@ function parseObj(text) {
         break;
       }
       // Group
-      case "g":
-        g = createGroup();
-        g.name = line.slice(1).trim();
-        groups.push(g);
+      case "g": {
+        const name = tokens.slice(1).join(" ");
+        // Faces of an already declared group are appended to it
+        g = groups.find((group) => group.name === name);
+        if (!g) {
+          g = createGroup();
+          g.name = name;
+          groups.push(g);
+        }
         break;
+      }
 
       // Type list: http://paulbourke.net/dataformats/obj/
       // Unsupported: Vertex data
