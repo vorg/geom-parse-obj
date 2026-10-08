@@ -25,6 +25,13 @@ function parseObj(text) {
   const groups = [];
   let g;
 
+  const logged = new Set();
+  const logOnce = (log, message) => {
+    if (logged.has(message)) return;
+    logged.add(message);
+    log(`geom-parse-obj: ${message}`);
+  };
+
   // Store parsed attributes
   const positions = [];
   const vertexColors = [];
@@ -147,10 +154,10 @@ function parseObj(text) {
       case "trace_obj":
       case "ctech":
       case "stech":
-        console.warn(`geom-parse-obj: unsupported data type "${line}"`);
+        logOnce(console.warn, `unsupported data type "${tokens[0]}"`);
         break;
       default:
-        console.error(`geom-parse-obj: unrecognized line "${line}"`);
+        logOnce(console.error, `unrecognized data type "${tokens[0]}"`);
     }
   }
 
