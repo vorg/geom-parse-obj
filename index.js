@@ -6,11 +6,13 @@ const createGroup = () => ({
   hasVertexColors: false,
   hasUVs: false,
   hasNormals: false,
-  positionOffset: 0,
-  vertexColorsOffset: 0,
-  uvOffset: 0,
-  normalOffset: 0,
 });
+
+const resolveIndex = (token, count) => {
+  if (!token) return null;
+  const index = Number(token);
+  return index > 0 ? index - 1 : count + index;
+};
 
 function parseObj(text) {
   const lines = text.trim().split("\n");
@@ -62,24 +64,18 @@ function parseObj(text) {
       case "f": {
         if (!g) {
           g = createGroup();
-          g.positionOffset = positions.length;
-          g.vertexColorsOffset = vertexColors.length;
-          g.uvOffset = uvs.length;
-          g.normalOffset = normals.length;
           g.name = `Mesh_${groups.length}`;
           groups.push(g);
         }
 
         const faceData = []; // Array<[v, vt, vn]>
         for (let j = 1; j < tokens.length; j++) {
-          const tokenValues = tokens[j].split("/");
-          const v = tokenValues[0];
-          const vt = tokenValues[1];
-          const vn = tokenValues[2];
-          tokenValues[0] = v && v.length > 0 ? Number(v) : null;
-          tokenValues[1] = vt && vt.length > 0 ? Number(vt) : null;
-          tokenValues[2] = vn && vn.length > 0 ? Number(vn) : null;
-          faceData.push(tokenValues);
+          const [v, vt, vn] = tokens[j].split("/");
+          faceData.push([
+            resolveIndex(v, positions.length),
+            resolveIndex(vt, uvs.length),
+            resolveIndex(vn, normals.length),
+          ]);
         }
 
         // Make a triangle fan
@@ -98,10 +94,6 @@ function parseObj(text) {
       // Group
       case "g":
         g = createGroup();
-        g.positionOffset = positions.length;
-        g.vertexColorsOffset = vertexColors.length;
-        g.uvOffset = uvs.length;
-        g.normalOffset = normals.length;
         g.name = line.slice(1).trim();
         groups.push(g);
         break;
@@ -177,22 +169,16 @@ function parseObj(text) {
         }
         geometry.cells[t * 3 + v] = index;
 
-        let pIndex = faceData[v][0];
-        // TODO: wrong assumption. it should be f offset
-        pIndex = pIndex > 0 ? pIndex - 1 : group.positionOffset + pIndex;
+        const [pIndex, tIndex, nIndex] = faceData[v];
 
         geometry.positions[index] = positions[pIndex];
         if (group.hasVertexColors) {
           geometry.vertexColors[index] = vertexColors[pIndex];
         }
         if (group.hasUVs) {
-          let tIndex = faceData[v][1];
-          tIndex = tIndex > 0 ? tIndex - 1 : group.uvOffset + tIndex;
           geometry.uvs[index] = uvs[tIndex];
         }
         if (group.hasNormals) {
-          let nIndex = faceData[v][2];
-          nIndex = nIndex > 0 ? nIndex - 1 : group.normalOffset + nIndex;
           geometry.normals[index] = normals[nIndex];
         }
       }
