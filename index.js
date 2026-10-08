@@ -9,9 +9,9 @@ const createGroup = () => ({
 });
 
 const resolveIndex = (token, count) => {
-  if (!token) return null;
   const index = Number(token);
-  return index > 0 ? index - 1 : count + index;
+  if (index > 0) return index - 1;
+  return index < 0 && count + index >= 0 ? count + index : null;
 };
 
 function parseObj(text) {
@@ -67,20 +67,25 @@ function parseObj(text) {
         break;
       // face: v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
       case "f": {
-        if (!g) {
-          g = createGroup();
-          g.name = `Mesh_${groups.length}`;
-          groups.push(g);
-        }
-
         const faceData = []; // Array<[v, vt, vn]>
         for (let j = 1; j < tokens.length; j++) {
-          const [v, vt, vn] = tokens[j].split("/");
+          const [v, vt, vn] = tokens[j].split("/", 3);
           faceData.push([
             resolveIndex(v, positions.length),
             resolveIndex(vt, uvs.length),
             resolveIndex(vn, normals.length),
           ]);
+        }
+
+        if (faceData.some(([p]) => p === null)) {
+          console.warn(`geom-parse-obj: invalid face "${line}"`);
+          break;
+        }
+
+        if (!g) {
+          g = createGroup();
+          g.name = `Mesh_${groups.length}`;
+          groups.push(g);
         }
 
         if (faceData.some((data) => data[1] !== null)) g.hasUVs = true;
