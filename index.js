@@ -101,7 +101,7 @@ function parseObj(text) {
       }
       // Group
       case "g": {
-        const name = tokens.slice(1).join(" ");
+        const name = tokens.slice(1).join(" ") || "default";
         // Faces of an already declared group are appended to it
         g = groups.find((group) => group.name === name);
         if (!g) {
