@@ -79,13 +79,12 @@ function parseObj(text) {
           ]);
         }
 
-        // Make a triangle fan
-        const v0 = faceData[0];
-
-        if (Number.isFinite(v0[1])) g.hasUVs = true;
-        if (Number.isFinite(v0[2])) g.hasNormals = true;
+        if (faceData.some((data) => data[1] !== null)) g.hasUVs = true;
+        if (faceData.some((data) => data[2] !== null)) g.hasNormals = true;
         if (faceData.some(([p]) => vertexColors[p])) g.hasVertexColors = true;
 
+        // Make a triangle fan
+        const v0 = faceData[0];
         for (let v = 1; v < faceData.length - 1; v++) {
           g.faceData.push([v0, faceData[v], faceData[v + 1]]);
         }
@@ -173,14 +172,14 @@ function parseObj(text) {
 
         geometry.positions[index] = positions[pIndex];
         if (group.hasVertexColors) {
-          // Default to white for uncolored vertices to keep attributes aligned
+          // Defaults for vertices missing an attribute keep attributes aligned
           geometry.vertexColors[index] = vertexColors[pIndex] ?? [1, 1, 1];
         }
         if (group.hasUVs) {
-          geometry.uvs[index] = uvs[tIndex];
+          geometry.uvs[index] = uvs[tIndex] ?? [0, 0];
         }
         if (group.hasNormals) {
-          geometry.normals[index] = normals[nIndex];
+          geometry.normals[index] = normals[nIndex] ?? [0, 0, 0];
         }
       }
     }
