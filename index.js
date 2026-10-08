@@ -154,7 +154,9 @@ function parseObj(text) {
     }
   }
 
-  return groups.map((group) => {
+  const nonEmptyGroups = groups.filter((group) => group.faceData.length);
+
+  return nonEmptyGroups.map((group) => {
     const size = group.faceData.length * 3;
 
     const geometry = {
