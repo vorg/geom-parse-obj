@@ -99,8 +99,9 @@ function parseObj(text) {
         }
         break;
       }
-      // Group
-      case "g": {
+      // Group and object (exporters like Blender only write objects)
+      case "g":
+      case "o": {
         const name = tokens.slice(1).join(" ") || "default";
         // Faces of an already declared group are appended to it
         g = groups.find((group) => group.name === name);
@@ -135,7 +136,6 @@ function parseObj(text) {
       // Unsupported: Grouping
       case "s":
       case "mg":
-      case "o":
       // Unsupported: Display/render attributes
       case "bevel":
       case "c_interp":

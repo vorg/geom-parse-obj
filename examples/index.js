@@ -13,7 +13,7 @@ const State = {
     "CornellBox-Original", // https://casual-effects.com/g3d/data10/common/model/CornellBox/CornellBox.zip
     "bunny", // http://graphics.stanford.edu/data/3Dscanrep/
     "spot", // https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/#spot
-    "suzanne", // https://www.blender.org/
+    "blender", // Blender 5.2 export: cube, suzanne with vertex colors, plane
   ],
   mode: 0,
   shadings: ["normals", "standard derivative", "uvs", "vertex colors"],
@@ -43,6 +43,21 @@ const updateGeometry = async () => {
 
   const geometries = parseObj(objString);
 
+  // Normalize all geometries as one to preserve their relative placement
+  const positions = new Float32Array(
+    geometries.reduce((sum, geometry) => sum + geometry.positions.length, 0),
+  );
+  let offset = 0;
+  for (const geometry of geometries) {
+    positions.set(geometry.positions, offset);
+    // Views on the shared buffer are updated in place by centerAndNormalize
+    geometry.positions = positions.subarray(
+      offset,
+      (offset += geometry.positions.length),
+    );
+  }
+  centerAndNormalize(positions);
+
   for (const geometry of geometries) {
     console.log("Parsed", geometry);
     if (!geometry.vertexColors) {
@@ -56,7 +71,6 @@ const updateGeometry = async () => {
       const size = geometry.positions.length / 3;
       geometry.uvs = new Float32Array(size * 2).fill(1);
     }
-    if (geometries.length === 1) centerAndNormalize(geometry.positions);
     console.log("Enhanced", geometry);
 
     cmdOptions.push({
