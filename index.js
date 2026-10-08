@@ -57,9 +57,9 @@ function parseObj(text) {
           ];
         }
         break;
-      // texture vertices (skipping 3rd coordinate): u v
+      // texture vertices (skipping 3rd coordinate): u [v]
       case "vt":
-        uvs.push([Number(tokens[1]), Number(tokens[2])]);
+        uvs.push([Number(tokens[1]), Number(tokens[2] ?? 0)]);
         break;
       // vertex normals: i j k
       case "vn":
