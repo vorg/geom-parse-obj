@@ -15,7 +15,11 @@ const resolveIndex = (token, count) => {
 };
 
 function parseObj(text) {
-  const lines = text.trim().split("\n");
+  // A trailing backslash continues a statement on the next line
+  const lines = text
+    .trim()
+    .replaceAll(/\\[ \t]*\r?\n/g, " ")
+    .split("\n");
 
   // Store parsed groups
   const groups = [];
