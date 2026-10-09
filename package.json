@@ -1,6 +1,6 @@
 {
   "name": "geom-parse-obj",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Parse Wavefront .obj geometry files.",
   "keywords": [
     "geom",
@@ -17,7 +17,10 @@
   ],
   "homepage": "https://github.com/vorg/geom-parse-obj",
   "bugs": "https://github.com/vorg/geom-parse-obj/issues",
-  "repository": "vorg/geom-parse-obj",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vorg/geom-parse-obj.git"
+  },
   "license": "MIT",
   "author": "Marcin Ignac <marcin.ignac@gmail.com> (https://github.com/vorg)",
   "contributors": [
@@ -33,7 +36,6 @@
   },
   "main": "./index.js",
   "types": "./types/index.d.ts",
-  "packageManager": "npm@12.2.0",
   "scripts": {
     "dev": "snowdev dev",
     "release": "snowdev release"
@@ -50,6 +52,7 @@
     "pex-gui": "^3.3.0",
     "pex-math": "^4.4.0"
   },
+  "packageManager": "npm@12.2.0",
   "engines": {
     "node": ">=24.0.0",
     "snowdev": ">=3.0.0-alpha.3"
