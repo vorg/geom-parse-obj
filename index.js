@@ -3,27 +3,43 @@ import typedArrayConstructor from "typed-array-constructor";
 const createGroup = () => ({
   name: "",
   faceData: [],
+  hasVertexColors: false,
   hasUVs: false,
   hasNormals: false,
-  positionOffset: 0,
-  uvOffset: 0,
-  normalOffset: 0,
 });
 
+const resolveIndex = (token, count) => {
+  const index = Number(token);
+  if (index > 0) return index - 1;
+  return index < 0 && count + index >= 0 ? count + index : null;
+};
+
 function parseObj(text) {
-  const lines = text.trim().split("\n");
+  // A trailing backslash continues a statement on the next line
+  const lines = text
+    .trim()
+    .replaceAll(/\\[ \t]*\r?\n/g, " ")
+    .split("\n");
 
   // Store parsed groups
   const groups = [];
   let g;
 
+  const logged = new Set();
+  const logOnce = (log, message) => {
+    if (logged.has(message)) return;
+    logged.add(message);
+    log(`geom-parse-obj: ${message}`);
+  };
+
   // Store parsed attributes
   const positions = [];
+  const vertexColors = [];
   const uvs = [];
   const normals = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].replace(/[\s]+/, " ");
+    const line = lines[i].replaceAll(/[\s]+/g, " ");
     const tokens = line.trim().split(" ");
 
     // Skip empty lines and commments
@@ -37,10 +53,20 @@ function parseObj(text) {
           Number(tokens[2]),
           Number(tokens[3]),
         ]);
+
+        // vertex colors (only if 4th, 5th and 6th defined): r g b
+        // Indexed like positions as not every vertex may have a color
+        if (tokens[4] && tokens[5] && tokens[6]) {
+          vertexColors[positions.length - 1] = [
+            Number(tokens[4]),
+            Number(tokens[5]),
+            Number(tokens[6]),
+          ];
+        }
         break;
-      // texture vertices (skipping 3rd coordinate): u v
+      // texture vertices (skipping 3rd coordinate): u [v]
       case "vt":
-        uvs.push([Number(tokens[1]), Number(tokens[2])]);
+        uvs.push([Number(tokens[1]), Number(tokens[2] ?? 0)]);
         break;
       // vertex normals: i j k
       case "vn":
@@ -48,47 +74,51 @@ function parseObj(text) {
         break;
       // face: v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
       case "f": {
+        const faceData = []; // Array<[v, vt, vn]>
+        for (let j = 1; j < tokens.length; j++) {
+          const [v, vt, vn] = tokens[j].split("/", 3);
+          faceData.push([
+            resolveIndex(v, positions.length),
+            resolveIndex(vt, uvs.length),
+            resolveIndex(vn, normals.length),
+          ]);
+        }
+
+        if (faceData.some(([p]) => p === null)) {
+          console.warn(`geom-parse-obj: invalid face "${line}"`);
+          break;
+        }
+
         if (!g) {
           g = createGroup();
-          g.positionOffset = positions.length;
-          g.uvOffset = uvs.length;
-          g.normalOffset = normals.length;
           g.name = `Mesh_${groups.length}`;
           groups.push(g);
         }
 
-        const faceData = []; // Array<[v, vt, vn]>
-        for (let j = 1; j < tokens.length; j++) {
-          const tokenValues = tokens[j].split("/");
-          const v = tokenValues[0];
-          const vt = tokenValues[1];
-          const vn = tokenValues[2];
-          tokenValues[0] = v && v.length > 0 ? Number(v) : null;
-          tokenValues[1] = vt && vt.length > 0 ? Number(vt) : null;
-          tokenValues[2] = vn && vn.length > 0 ? Number(vn) : null;
-          faceData.push(tokenValues);
-        }
+        if (faceData.some((data) => data[1] !== null)) g.hasUVs = true;
+        if (faceData.some((data) => data[2] !== null)) g.hasNormals = true;
+        if (faceData.some(([p]) => vertexColors[p])) g.hasVertexColors = true;
 
         // Make a triangle fan
         const v0 = faceData[0];
-
-        if (Number.isFinite(v0[1])) g.hasUVs = true;
-        if (Number.isFinite(v0[2])) g.hasNormals = true;
-
         for (let v = 1; v < faceData.length - 1; v++) {
           g.faceData.push([v0, faceData[v], faceData[v + 1]]);
         }
         break;
       }
-      // Group
+      // Group and object (exporters like Blender only write objects)
       case "g":
-        g = createGroup();
-        g.positionOffset = positions.length;
-        g.uvOffset = uvs.length;
-        g.normalOffset = normals.length;
-        g.name = line.slice(1).trim();
-        groups.push(g);
+      case "o": {
+        const name = tokens.slice(1).join(" ") || "default";
+        // Faces of an already declared group are appended to it
+        g = groups.find((group) => group.name === name);
+        if (!g) {
+          g = createGroup();
+          g.name = name;
+          groups.push(g);
+        }
         break;
+      }
 
       // Type list: http://paulbourke.net/dataformats/obj/
       // Unsupported: Vertex data
@@ -113,7 +143,6 @@ function parseObj(text) {
       // Unsupported: Grouping
       case "s":
       case "mg":
-      case "o":
       // Unsupported: Display/render attributes
       case "bevel":
       case "c_interp":
@@ -125,14 +154,16 @@ function parseObj(text) {
       case "trace_obj":
       case "ctech":
       case "stech":
-        console.warn(`geom-parse-obj: unsupported data type "${line}"`);
+        logOnce(console.warn, `unsupported data type "${tokens[0]}"`);
         break;
       default:
-        console.error(`geom-parse-obj: unrecognized line "${line}"`);
+        logOnce(console.error, `unrecognized data type "${tokens[0]}"`);
     }
   }
 
-  return groups.map((group) => {
+  const nonEmptyGroups = groups.filter((group) => group.faceData.length);
+
+  return nonEmptyGroups.map((group) => {
     const size = group.faceData.length * 3;
 
     const geometry = {
@@ -140,6 +171,7 @@ function parseObj(text) {
       positions: [],
       cells: new (typedArrayConstructor(size))(size),
     };
+    if (group.hasVertexColors) geometry.vertexColors = [];
     if (group.hasNormals) geometry.normals = [];
     if (group.hasUVs) geometry.uvs = [];
 
@@ -160,25 +192,27 @@ function parseObj(text) {
         }
         geometry.cells[t * 3 + v] = index;
 
-        let pIndex = faceData[v][0];
-        pIndex = pIndex > 0 ? pIndex - 1 : group.positionOffset + pIndex;
+        const [pIndex, tIndex, nIndex] = faceData[v];
 
         geometry.positions[index] = positions[pIndex];
+        if (group.hasVertexColors) {
+          // Defaults for vertices missing an attribute keep attributes aligned
+          geometry.vertexColors[index] = vertexColors[pIndex] ?? [1, 1, 1];
+        }
         if (group.hasUVs) {
-          let tIndex = faceData[v][1];
-          tIndex = tIndex > 0 ? tIndex - 1 : group.uvOffset + tIndex;
-          geometry.uvs[index] = uvs[tIndex];
+          geometry.uvs[index] = uvs[tIndex] ?? [0, 0];
         }
         if (group.hasNormals) {
-          let nIndex = faceData[v][2];
-          nIndex = nIndex > 0 ? nIndex - 1 : group.normalOffset + nIndex;
-          geometry.normals[index] = normals[nIndex];
+          geometry.normals[index] = normals[nIndex] ?? [0, 0, 0];
         }
       }
     }
 
     // Attributes length is only available now as we try to dedupe incoming data
     geometry.positions = new Float32Array(geometry.positions.flat());
+    if (group.hasVertexColors) {
+      geometry.vertexColors = new Float32Array(geometry.vertexColors.flat());
+    }
     if (group.hasNormals) {
       geometry.normals = new Float32Array(geometry.normals.flat());
     }

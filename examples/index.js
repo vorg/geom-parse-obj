@@ -10,12 +10,13 @@ import centerAndNormalize from "geom-center-and-normalize";
 const State = {
   model: 0,
   models: [
+    "CornellBox-Original", // https://casual-effects.com/g3d/data10/common/model/CornellBox/CornellBox.zip
     "bunny", // http://graphics.stanford.edu/data/3Dscanrep/
     "spot", // https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/#spot
-    "suzanne", // https://www.blender.org/
+    "blender", // Blender 5.2 export: cube, suzanne with vertex colors, plane
   ],
   mode: 0,
-  shadings: ["normals", "standard derivative", "uvs"],
+  shadings: ["normals", "standard derivative", "uvs", "vertex colors"],
 };
 const ctx = createContext({
   element: document.querySelector("main"),
@@ -27,38 +28,61 @@ const camera = createCamera({
 });
 const orbiter = createOrbiter({ camera });
 
-let cmdOptions = {};
+let cmdOptions = [];
 
 const updateGeometry = async () => {
+  cmdOptions.length = 0;
   const objString = await (
     await fetch(
       new URL(
         `assets/${State.models[State.model]}.obj`,
-        import.meta.url
-      ).toString()
+        import.meta.url,
+      ).toString(),
     )
   ).text();
 
-  const [geometry] = parseObj(objString);
-  console.log("Parsed", geometry);
-  if (!geometry.normals) {
-    geometry.normals = normals(geometry.positions, geometry.cells);
-  }
-  if (!geometry.uvs) {
-    const size = geometry.positions.length / 3;
-    geometry.uvs = new Float32Array(size * 2).fill(1);
-  }
-  centerAndNormalize(geometry.positions);
-  console.log("Enhanced", geometry);
+  const geometries = parseObj(objString);
 
-  cmdOptions = {
-    attributes: {
-      aPosition: ctx.vertexBuffer(geometry.positions),
-      aNormal: ctx.vertexBuffer(geometry.normals),
-      aUv: ctx.vertexBuffer(geometry.uvs),
-    },
-    indices: ctx.indexBuffer(geometry.cells),
-  };
+  // Normalize all geometries as one to preserve their relative placement
+  const positions = new Float32Array(
+    geometries.reduce((sum, geometry) => sum + geometry.positions.length, 0),
+  );
+  let offset = 0;
+  for (const geometry of geometries) {
+    positions.set(geometry.positions, offset);
+    // Views on the shared buffer are updated in place by centerAndNormalize
+    geometry.positions = positions.subarray(
+      offset,
+      (offset += geometry.positions.length),
+    );
+  }
+  centerAndNormalize(positions);
+
+  for (const geometry of geometries) {
+    console.log("Parsed", geometry);
+    if (!geometry.vertexColors) {
+      const size = geometry.positions.length;
+      geometry.vertexColors = new Float32Array(size).fill(0);
+    }
+    if (!geometry.normals) {
+      geometry.normals = normals(geometry.positions, geometry.cells);
+    }
+    if (!geometry.uvs) {
+      const size = geometry.positions.length / 3;
+      geometry.uvs = new Float32Array(size * 2).fill(1);
+    }
+    console.log("Enhanced", geometry);
+
+    cmdOptions.push({
+      attributes: {
+        aPosition: ctx.vertexBuffer(geometry.positions),
+        aVertexColor: ctx.vertexBuffer(geometry.vertexColors),
+        aNormal: ctx.vertexBuffer(geometry.normals),
+        aUv: ctx.vertexBuffer(geometry.uvs),
+      },
+      indices: ctx.indexBuffer(geometry.cells),
+    });
+  }
 };
 
 updateGeometry();
@@ -70,21 +94,18 @@ gui.addRadioList(
   State,
   "model",
   State.models.map((name, value) => ({ name, value })),
-  updateGeometry
+  updateGeometry,
 );
 gui.addColumn("Rendering");
 gui.addRadioList(
   "Mode",
   State,
   "mode",
-  State.shadings.map((name, value) => ({ name, value }))
+  State.shadings.map((name, value) => ({ name, value })),
 );
 
 const clearCmd = {
-  pass: ctx.pass({
-    clearColor: [0.2, 0.2, 0.2, 1],
-    clearDepth: 1,
-  }),
+  pass: ctx.pass({ clearColor: [0.2, 0.2, 0.2, 1], clearDepth: 1 }),
 };
 
 const drawGeom = {
@@ -95,15 +116,18 @@ uniform mat4 uViewMatrix;
 uniform mat4 uModelMatrix;
 
 in vec3 aPosition;
+in vec3 aVertexColor;
 in vec3 aNormal;
 in vec2 aUv;
 
 out vec3 vPositionWorld;
+out vec3 vVertexColor;
 out vec3 vNormal;
 out vec2 vUv;
 
 void main () {
   vPositionWorld = (uModelMatrix * vec4(aPosition, 1.0)).xyz;
+  vVertexColor = aVertexColor;
   vNormal = aNormal;
   vUv = aUv;
   gl_Position = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);
@@ -114,6 +138,7 @@ precision highp float;
 uniform float uMode;
 
 in vec3 vPositionWorld;
+in vec3 vVertexColor;
 in vec3 vNormal;
 in vec2 vUv;
 
@@ -130,6 +155,7 @@ void main () {
   }
 
   if (uMode == 2.0) fragColor = vec4(vUv.xy, 0.0, 1.0);
+  if (uMode == 3.0) fragColor = vec4(vVertexColor.rgb, 1.0);
 }`,
     depthTest: true,
   }),
@@ -142,11 +168,8 @@ void main () {
 
 ctx.frame(() => {
   ctx.submit(clearCmd);
-  ctx.submit(drawGeom, {
-    ...cmdOptions,
-    uniforms: {
-      uMode: State.mode,
-    },
-  });
+  for (const options of cmdOptions) {
+    ctx.submit(drawGeom, { ...options, uniforms: { uMode: State.mode } });
+  }
   gui.draw();
 });
